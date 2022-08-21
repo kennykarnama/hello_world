@@ -24,7 +24,8 @@ class GrantDtoResponse : public oatpp::DTO {
     DTO_INIT(GrantDtoResponse, DTO)
 
     DTO_FIELD(String, token);
-    DTO_FIELD(Int32, ttl);
+    DTO_FIELD(Int64, ttl);
+    DTO_FIELD(Int64, epochExpiration);
 };
 
 class GrantRequestDto : public oatpp::DTO {
@@ -42,6 +43,16 @@ class ErrorDto : public oatpp::DTO {
     DTO_FIELD(String, errorCode);
 
     DTO_FIELD(String, errorMessage);
+};
+
+class ValidateTokenReqDto : public oatpp::DTO {
+    DTO_INIT(ValidateTokenReqDto, DTO)
+
+    DTO_FIELD(String, token);
+};
+
+class ValidateTokenRespDto : public oatpp::DTO {
+    DTO_INIT(ValidateTokenRespDto, DTO);
 };
 
 class MemoDto : public oatpp::DTO {

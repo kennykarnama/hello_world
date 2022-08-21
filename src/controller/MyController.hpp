@@ -16,12 +16,14 @@
 
 #include OATPP_CODEGEN_BEGIN(ApiController) //<-- Begin Codegen
 
+using namespace std::chrono;
+
 /**
  * Sample Api Controller.
  */
 class MyController : public oatpp::web::server::api::ApiController {
 private:
-    folly::ConcurrentHashMap<String,int> memo;
+    folly::ConcurrentHashMap<String,uint64_t> memo;
 public:
   /**
    * Constructor with object mapper.
@@ -44,6 +46,8 @@ public:
         auto dto = GrantDtoResponse::createShared();
         auto username = getenv("APP_USERNAME");
         auto password = getenv("APP_PASSWORD");
+        auto ttl_str = getenv("APP_LOGIN_TTL");
+        auto ttl = strtoull(ttl_str, NULL, 0);
 
         auto errorDto = ErrorDto::createShared();
         if (strcmp(username, grantRequestDto->username->c_str()) != 0
@@ -54,9 +58,17 @@ public:
         }
         boost::uuids::random_generator gen;
         boost::uuids::uuid id = gen();
-        this->memo.insert(to_string(id), 1);
+
+        system_clock::time_point tp = system_clock::now();
+        system_clock::duration dtn = tp.time_since_epoch();
+        auto ms = duration_cast<milliseconds>(dtn).count();
+        auto epochExpiration = ms + ttl * 1000;
+
+        this->memo.insert(to_string(id), epochExpiration);
         dto->token = to_string(id);
-        dto->ttl = 30;
+        dto->ttl = ttl;
+        dto->epochExpiration = epochExpiration;
+
         return createDtoResponse(Status::CODE_200, dto);
   }
 
@@ -73,6 +85,32 @@ public:
             ++it;
         }
         return createDtoResponse(Status::CODE_200, memoDto);
+    }
+
+    ENDPOINT("POST", "/grant/valid", validateToken, BODY_DTO(Object<ValidateTokenReqDto>, req)) {
+        auto validateResp = ValidateTokenRespDto::createShared();
+
+        system_clock::time_point tp = system_clock::now();
+        system_clock::duration dtn = tp.time_since_epoch();
+        auto ms = duration_cast<milliseconds>(dtn).count();
+
+        auto it = this->memo.find(req->token);
+
+        auto errorDto = ErrorDto::createShared();
+
+        if (it == this->memo.end()) {
+            errorDto->errorCode = "1000";
+            errorDto->errorMessage = "not authorized";
+            return createDtoResponse(Status::CODE_401, errorDto);
+        }
+
+        if (ms > it->second) {
+            errorDto->errorCode = "1001";
+            errorDto->errorMessage = "not authorized";
+            return createDtoResponse(Status::CODE_401, errorDto);
+        }
+
+        return createDtoResponse(Status::CODE_200, validateResp);
     }
 
 };
