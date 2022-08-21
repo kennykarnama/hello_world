@@ -20,6 +20,8 @@
  * Sample Api Controller.
  */
 class MyController : public oatpp::web::server::api::ApiController {
+private:
+    folly::ConcurrentHashMap<String,int> memo;
 public:
   /**
    * Constructor with object mapper.
@@ -27,7 +29,8 @@ public:
    */
   MyController(OATPP_COMPONENT(std::shared_ptr<ObjectMapper>, objectMapper))
     : oatpp::web::server::api::ApiController(objectMapper)
-  {}
+  {
+  }
 public:
   
   ENDPOINT("GET", "/", root) {
@@ -51,22 +54,26 @@ public:
         }
         boost::uuids::random_generator gen;
         boost::uuids::uuid id = gen();
-        folly::ConcurrentHashMap<String, int> cache;
-        cache.insert(to_string(id), 1);
+        this->memo.insert(to_string(id), 1);
         dto->token = to_string(id);
         dto->ttl = 30;
-        auto it = cache.find("test");
-        if (it == cache.end()) {
-            OATPP_LOGD("hashmap not exist", "test=not found");
-        }
-        it = cache.find(to_string(id));
-        if (it != cache.end()) {
-            OATPP_LOGD("hashmap exist", "test=%d", it->second);
-        }
         return createDtoResponse(Status::CODE_200, dto);
   }
-  
-  // TODO Insert Your endpoints here !!!
+
+    ENDPOINT("GET", "/memos", memos) {
+        auto memoDto = MemoDto::createShared();
+        memoDto->ids = {};
+        OATPP_LOGD("list", "'%d'", 2);
+
+        auto it = this->memo.begin();
+
+        while (it != this->memo.end()) {
+            OATPP_LOGD("memos", "'%s'", it->first->c_str());
+            memoDto->ids->push_back(it->first);
+            ++it;
+        }
+        return createDtoResponse(Status::CODE_200, memoDto);
+    }
 
 };
 

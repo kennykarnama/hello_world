@@ -44,6 +44,12 @@ class ErrorDto : public oatpp::DTO {
     DTO_FIELD(String, errorMessage);
 };
 
+class MemoDto : public oatpp::DTO {
+    DTO_INIT(MemoDto, DTO)
+
+    DTO_FIELD(Vector<String>, ids);
+};
+
 #include OATPP_CODEGEN_END(DTO)
 
 #endif /* DTOs_hpp */
