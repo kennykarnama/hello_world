@@ -41,7 +41,7 @@ public:
     dto->message = "Hello World!";
     return createDtoResponse(Status::CODE_200, dto);
   }
-
+  ADD_CORS(login)
   ENDPOINT("POST", "/grant", login, BODY_DTO(Object<GrantRequestDto>, grantRequestDto)) {
         auto dto = GrantDtoResponse::createShared();
         auto username = getenv("APP_USERNAME");
@@ -86,8 +86,11 @@ public:
         }
         return createDtoResponse(Status::CODE_200, memoDto);
     }
-
+    
+    ADD_CORS(validateToken)
     ENDPOINT("POST", "/grant/valid", validateToken, BODY_DTO(Object<ValidateTokenReqDto>, req)) {
+
+        OATPP_LOGD("/grant/valid", "")
         auto validateResp = ValidateTokenRespDto::createShared();
 
         system_clock::time_point tp = system_clock::now();
